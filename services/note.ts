@@ -1,9 +1,11 @@
 import { INote } from "../types/INote"
-import * as db from '../libs/mysql'
+import { connect } from '../libs/mongodb'
+import { Note } from '../models/noteModel'
 
 const list = async () => {
-    const result = await db.execute('select * from notes')
-    return result.rowns
+    await connect()
+    const result = await Note.find()
+    return result
 }
 
 const get = async (id: string) => {
@@ -11,13 +13,13 @@ const get = async (id: string) => {
       throw new Error("Informe o campo id!")
     }
     
-    const note = await db.execute('select * from notes where id=?', [id])
+    const note = await Note.findById(id)
   
     if (!note) {
         throw new Error("Nenhuma anotação encontrada para o id informado!")
     }
   
-    return note.rowns
+    return note
 }
 
 const create = async (note: INote) => {
@@ -29,7 +31,7 @@ const create = async (note: INote) => {
         throw new Error("Informe o campo description!")
     }
 
-    await db.execute('insert into notes (title, description) values (?, ?)', [note.title, note.description])
+    await Note.create(note)
 
     return true
   
@@ -39,13 +41,7 @@ const update = async (note: INote) => {
     if (!note.id) {
         throw new Error("Informe o campo id!")
     }
-  
-    const noteFound = await db.execute('select * from notes where id=?', [note.id])
-  
-    if (!noteFound) {
-      throw new Error("Nenhuma anotação encontrada para o id informado!")
-    }
-  
+
     if (!note.title) {
         throw new Error("Informe o campo title!")
     }
@@ -54,7 +50,11 @@ const update = async (note: INote) => {
         throw new Error("Informe o campo description!")
     }
   
-    await db.execute('update notes set title=?, description=? where id=?', [note.title, note.description, note.id])
+    const noteFound = await Note.findByIdAndUpdate(note.id, note)
+  
+    if (!noteFound) {
+      throw new Error("Nenhuma anotação encontrada para o id informado!")
+    }
   
     return true
 }
@@ -64,12 +64,10 @@ const remove = async (id: string) => {
         throw new Error("Informe o campo id!")
     }
   
-    const note = await db.execute('select * from notes where id=?', [id])
+    const note = await Note.findByIdAndRemove(id)
     if (!note) {
         throw new Error("Nenhuma anotação encontrada para o id informado!")
     }
-  
-    await db.execute('delete from notes where id=?', [id])
   
     return true
 }
